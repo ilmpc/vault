@@ -11,6 +11,28 @@ resource "yandex_resourcemanager_folder_iam_member" "storage_viewer" {
   role      = "storage.viewer"
   member    = "serviceAccount:${yandex_iam_service_account.vaultwarden_vm.id}"
 }
+
+resource "yandex_resourcemanager_folder_iam_member" "os_login_admin" {
+  count     = var.os_login_user_id == "" ? 0 : 1
+  folder_id = var.yc_folder_id
+  role      = "compute.osAdminLogin"
+  member    = "userAccount:${var.os_login_user_id}"
+}
+
+resource "yandex_resourcemanager_folder_iam_member" "os_login_operator" {
+  count     = var.os_login_user_id == "" ? 0 : 1
+  folder_id = var.yc_folder_id
+  role      = "compute.operator"
+  member    = "userAccount:${var.os_login_user_id}"
+}
+
+resource "yandex_resourcemanager_folder_iam_member" "os_login_auditor" {
+  count     = var.os_login_user_id == "" ? 0 : 1
+  folder_id = var.yc_folder_id
+  role      = "resource-manager.auditor"
+  member    = "userAccount:${var.os_login_user_id}"
+}
+
 resource "yandex_storage_bucket" "backups" {
   bucket = var.backup_bucket_name
   acl    = "private"

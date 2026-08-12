@@ -85,7 +85,7 @@ yc_folder_id
 yc_zone
 domain_name
 cloudflare_zone_id
-vm_ssh_public_key
+os_login_user_id
 vaultwarden_image
 caddy_image
 backup_bucket_name

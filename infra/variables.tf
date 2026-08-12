@@ -10,7 +10,10 @@ variable "cloudflare_api_token" {
   type      = string
   sensitive = true
 }
-variable "vm_ssh_public_key" { type = string }
+variable "os_login_user_id" {
+  type    = string
+  default = ""
+}
 variable "ssh_allowed_cidrs" { type = list(string) }
 variable "ubuntu_image_id" { type = string }
 variable "backup_bucket_name" { type = string }

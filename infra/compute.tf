@@ -33,7 +33,7 @@ resource "yandex_compute_instance" "vaultwarden" {
     nat_ip_address     = yandex_vpc_address.vaultwarden.external_ipv4_address[0].address
   }
   metadata = {
-    ssh-keys = "ubuntu:${var.vm_ssh_public_key}"
+    enable-oslogin = "true"
     user-data = templatefile("${path.module}/templates/cloud-init.yaml.tftpl", {
       backup_bucket_name = var.backup_bucket_name
       caddy_image        = var.caddy_image

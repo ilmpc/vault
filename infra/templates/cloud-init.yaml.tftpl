@@ -5,27 +5,27 @@ write_files:
   - path: /opt/vaultwarden/compose.yaml
     permissions: '0644'
     content: |
-${indent(6, compose)}
+      ${replace(compose, "\n", "\n      ")}
   - path: /opt/vaultwarden/Caddyfile
     permissions: '0644'
     content: |
-${indent(6, caddyfile)}
+      ${replace(caddyfile, "\n", "\n      ")}
   - path: /usr/local/sbin/vw-backup
     permissions: '0750'
     content: |
-${indent(6, backup_script)}
+      ${replace(backup_script, "\n", "\n      ")}
   - path: /usr/local/sbin/vw-restore
     permissions: '0750'
     content: |
-${indent(6, restore_script)}
+      ${replace(restore_script, "\n", "\n      ")}
   - path: /etc/systemd/system/vw-backup.service
     permissions: '0644'
     content: |
-${indent(6, backup_service)}
+      ${replace(backup_service, "\n", "\n      ")}
   - path: /etc/systemd/system/vw-backup.timer
     permissions: '0644'
     content: |
-${indent(6, backup_timer)}
+      ${replace(backup_timer, "\n", "\n      ")}
 runcmd:
   - |
     set -eu
@@ -34,6 +34,8 @@ runcmd:
     yc config profile create vaultwarden || true
     yc config set cloud-id ${yc_cloud_id}
     yc config set folder-id ${yc_folder_id}
+    printf '%s\n' 'PasswordAuthentication no' 'PermitRootLogin no' 'GatewayPorts no' > /etc/ssh/sshd_config.d/99-vaultwarden.conf
+    systemctl reload ssh || systemctl reload sshd || true
     disk=$$(readlink -f /dev/disk/by-id/virtio-vaultwarden-data)
     if ! blkid "$$disk" >/dev/null; then mkfs.ext4 -F "$$disk"; fi
     uuid=$$(blkid -s UUID -o value "$$disk")
