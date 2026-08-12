@@ -1,0 +1,53 @@
+#cloud-config
+package_update: true
+packages: [docker.io, docker-compose-plugin, sqlite3, jq, curl, util-linux]
+write_files:
+  - path: /opt/vaultwarden/compose.yaml
+    permissions: '0644'
+    content: |
+${indent(6, compose)}
+  - path: /opt/vaultwarden/Caddyfile
+    permissions: '0644'
+    content: |
+${indent(6, caddyfile)}
+  - path: /usr/local/sbin/vw-backup
+    permissions: '0750'
+    content: |
+${indent(6, backup_script)}
+  - path: /usr/local/sbin/vw-restore
+    permissions: '0750'
+    content: |
+${indent(6, restore_script)}
+  - path: /etc/systemd/system/vw-backup.service
+    permissions: '0644'
+    content: |
+${indent(6, backup_service)}
+  - path: /etc/systemd/system/vw-backup.timer
+    permissions: '0644'
+    content: |
+${indent(6, backup_timer)}
+runcmd:
+  - |
+    set -eu
+    curl -fsSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
+    install -m 0755 /root/yandex-cloud/bin/yc /usr/local/bin/yc
+    yc config profile create vaultwarden || true
+    yc config set cloud-id ${yc_cloud_id}
+    yc config set folder-id ${yc_folder_id}
+    disk=$$(readlink -f /dev/disk/by-id/virtio-vaultwarden-data)
+    if ! blkid "$$disk" >/dev/null; then mkfs.ext4 -F "$$disk"; fi
+    uuid=$$(blkid -s UUID -o value "$$disk")
+    mkdir -p /srv/vaultwarden /opt/vaultwarden /var/lib/vaultwarden-backups
+    grep -q "$$uuid" /etc/fstab || echo "UUID=$$uuid /srv/vaultwarden ext4 defaults 0 2" >> /etc/fstab
+    mount /srv/vaultwarden
+    mountpoint -q /srv/vaultwarden
+    mkdir -p /srv/vaultwarden/vw-data /srv/vaultwarden/caddy-data /srv/vaultwarden/caddy-config
+    if [ ! -f /opt/vaultwarden/.env ]; then
+      admin_token=$$(openssl rand -base64 48 | tr -d '\n')
+      cat > /opt/vaultwarden/.env <<EOF
+${vaultwarden_env}
+EOF
+    fi
+    systemctl daemon-reload
+    systemctl enable --now docker vw-backup.timer
+    cd /opt/vaultwarden && docker compose up -d

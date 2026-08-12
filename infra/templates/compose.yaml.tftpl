@@ -1,0 +1,22 @@
+services:
+  vaultwarden:
+    image: $${VAULTWARDEN_IMAGE}
+    container_name: vaultwarden
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - /srv/vaultwarden/vw-data:/data
+    ports:
+      - "127.0.0.1:8080:80"
+  caddy:
+    image: $${CADDY_IMAGE}
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - /opt/vaultwarden/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /srv/vaultwarden/caddy-data:/data
+      - /srv/vaultwarden/caddy-config:/config

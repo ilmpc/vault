@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+root=/srv/vaultwarden
+bucket=${backup_bucket_name}
+work=/var/lib/vaultwarden-restore
+usage() { echo "usage: vw-restore list|latest|TIMESTAMP" >&2; exit 2; }
+mountpoint -q "$$root" || { echo "$$root is not mounted" >&2; exit 1; }
+[[ $$# -eq 1 ]] || usage
+if [[ "$$1" == list ]]; then yc storage s3 ls "s3://$$bucket/vaultwarden/backups/"; exit 0; fi
+mkdir -p "$$work"
+if [[ "$$1" == latest ]]; then
+  yc storage s3 cp "s3://$$bucket/vaultwarden/manifests/latest.json" "$$work/latest.json"
+  timestamp="$$(jq -r .timestamp "$$work/latest.json")"
+else
+  timestamp="$$1"
+fi
+name="vaultwarden-$$timestamp.tar.gz"
+archive="$$work/$$name"
+checksum="$$archive.sha256"
+prefix="s3://$$bucket/vaultwarden/backups/$$timestamp"
+yc storage s3 cp "$$prefix/$$name" "$$archive"
+yc storage s3 cp "$$prefix/$$name.sha256" "$$checksum"
+sha256sum -c "$$checksum"
+tar -C "$$root" -czf "$$root/vw-data.before-restore-$$(date -u +%Y-%m-%dT%H-%M-%S).tar.gz" vw-data
+(cd /opt/vaultwarden && docker compose stop vaultwarden)
+mv "$$root/vw-data" "$$root/vw-data.before-restore-$$timestamp"
+tar -C "$$root" -xzf "$$archive"
+(cd /opt/vaultwarden && docker compose start vaultwarden)
+docker logs --tail=100 vaultwarden
