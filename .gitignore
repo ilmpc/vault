@@ -1,8 +1,10 @@
 .env
 infra/terraform.tfvars
+infra/secrets/
 .terraform/
 *.tfstate
 *.tfstate.*
+tfplan
 crash.log
 *.tar.gz
 *.sha256
