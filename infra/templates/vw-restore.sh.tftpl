@@ -10,7 +10,7 @@ mkdir -p "$work"
 if [[ "$1" == latest ]]; then
   timestamp="$(
     yc storage s3api list-objects --bucket "$bucket" --prefix vaultwarden/backups/ --format json |
-      jq -r '[.contents[]?.key | capture("^vaultwarden/backups/(?<timestamp>[^/]+)/vaultwarden-.+\\.tar\\.gz$")?.timestamp] | sort | last // empty'
+      jq -r '[.contents[]?.key | select(test("^vaultwarden/backups/[^/]+/vaultwarden-.+\\.tar\\.gz$")) | capture("^vaultwarden/backups/(?<timestamp>[^/]+)/vaultwarden-.+\\.tar\\.gz$") | .timestamp] | sort | last // empty'
   )"
   [[ -n "$timestamp" ]] || { echo "no backups found" >&2; exit 1; }
 else
