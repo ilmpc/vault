@@ -25,7 +25,7 @@ variable "local_backup_keep" {
 }
 variable "vaultwarden_image" {
   type    = string
-  default = "vaultwarden/server:1.34.3"
+  default = "vaultwarden/server:1.37.1"
 }
 variable "caddy_image" {
   type    = string

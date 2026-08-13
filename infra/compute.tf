@@ -9,6 +9,11 @@ resource "yandex_compute_instance" "vaultwarden" {
   platform_id               = "standard-v3"
   allow_stopping_for_update = true
   service_account_id        = yandex_iam_service_account.vaultwarden_vm.id
+  depends_on = [
+    terraform_data.backup_bucket,
+    yandex_resourcemanager_folder_iam_member.storage_uploader,
+    yandex_resourcemanager_folder_iam_member.storage_viewer,
+  ]
 
   resources {
     cores         = var.vm_cores

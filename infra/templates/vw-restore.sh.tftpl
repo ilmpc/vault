@@ -8,8 +8,11 @@ usage() { echo "usage: vw-restore list|latest|TIMESTAMP" >&2; exit 2; }
 if [[ "$1" == list ]]; then yc storage s3 ls "s3://$bucket/vaultwarden/backups/"; exit 0; fi
 mkdir -p "$work"
 if [[ "$1" == latest ]]; then
-  yc storage s3 cp "s3://$bucket/vaultwarden/manifests/latest.json" "$work/latest.json" || { echo "no latest backup" >&2; exit 1; }
-  timestamp="$(jq -er .timestamp "$work/latest.json")"
+  timestamp="$(
+    yc storage s3api list-objects --bucket "$bucket" --prefix vaultwarden/backups/ --format json |
+      jq -r '[.contents[]?.key | capture("^vaultwarden/backups/(?<timestamp>[^/]+)/vaultwarden-.+\\.tar\\.gz$")?.timestamp] | sort | last // empty'
+  )"
+  [[ -n "$timestamp" ]] || { echo "no backups found" >&2; exit 1; }
 else
   timestamp="$1"
 fi
@@ -23,8 +26,8 @@ expected="$(awk '{print $1}' "$checksum")"
 actual="$(sha256sum "$archive" | awk '{print $1}')"
 [[ "$actual" == "$expected" ]] || { echo "checksum mismatch" >&2; exit 1; }
 tar -C "$root" -czf "$root/vw-data.before-restore-$(date -u +%Y-%m-%dT%H-%M-%S).tar.gz" vw-data
-(cd /opt/vaultwarden && docker compose stop vaultwarden)
+container_id="$(cd /opt/vaultwarden && docker compose ps -q vaultwarden 2>/dev/null || true)"
+[[ -z "$container_id" ]] || (cd /opt/vaultwarden && docker compose stop vaultwarden)
 mv "$root/vw-data" "$root/vw-data.before-restore-$timestamp"
 tar -C "$root" -xzf "$archive"
-(cd /opt/vaultwarden && docker compose start vaultwarden)
-docker logs --tail=100 vaultwarden
+[[ -z "$container_id" ]] || (cd /opt/vaultwarden && docker compose up -d vaultwarden)

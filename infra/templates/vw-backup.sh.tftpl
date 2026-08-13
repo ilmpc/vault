@@ -18,11 +18,9 @@ stopped=true
 tar -C "$root" -czf "$archive" vw-data
 (cd /opt/vaultwarden && docker compose start vaultwarden)
 stopped=false
-sha256sum "$archive" | sed "s|  $archive$|  $name|" > "$checksum"
+sha256sum "$archive" > "$checksum"
 sha256sum -c "$checksum"
 prefix="s3://$bucket/vaultwarden/backups/$timestamp"
 yc storage s3 cp "$archive" "$prefix/$(basename "$archive")"
 yc storage s3 cp "$checksum" "$prefix/$(basename "$checksum")"
-printf '{"timestamp":"%s"}\n' "$timestamp" > "$work/latest.json"
-yc storage s3 cp "$work/latest.json" "s3://$bucket/vaultwarden/manifests/latest.json"
 find "$work" -maxdepth 1 -type f \( -name '*.tar.gz' -o -name '*.sha256' \) -printf '%T@ %p\n' | sort -nr | awk 'NR > ${local_backup_keep} { print $2 }' | xargs -r rm -f

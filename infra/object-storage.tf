@@ -44,24 +44,12 @@ resource "terraform_data" "backup_bucket" {
     command     = <<-EOF
       set -eu
       bucket='${var.backup_bucket_name}'
-      endpoint='vaultwarden-storage'
-      if ! yc storage bucket get "$bucket" >/dev/null 2>&1; then
-        yc storage bucket create "$bucket" --acl private --default-storage-class STANDARD
+      if ! yc storage bucket get "$bucket" --folder-id '${var.yc_folder_id}' >/dev/null 2>&1; then
+        yc storage bucket create "$bucket" --folder-id '${var.yc_folder_id}' --acl private --default-storage-class ICE
       fi
-      if ! yc vpc private-endpoint get "$endpoint" >/dev/null 2>&1; then
-        yc vpc private-endpoint create "$endpoint" \
-          --network-id '${data.yandex_vpc_subnet.default.network_id}' \
-          --object-storage \
-          --private-dns-records-enabled \
-          --address-spec subnet-id='${data.yandex_vpc_subnet.default.id}' >/dev/null
-      fi
-      endpoint_id="$(yc vpc private-endpoint get "$endpoint" --format json | jq -r .id)"
-      yc storage bucket update "$bucket" \
+      yc storage bucket update "$bucket" --folder-id '${var.yc_folder_id}' \
         --versioning versioning-enabled \
-        --lifecycle-rules '{"lifecycleRules":[{"id":"expire-backups","enabled":true,"expiration":{"days":"${var.backup_retention_days}"}}]}' \
-        --enable-private-endpoints=true \
-        --private-endpoints "$endpoint_id" \
-        --private-endpoints-force-cloudconsole-access=true
+        --lifecycle-rules '{"lifecycleRules":[{"id":"expire-backups","enabled":true,"filter":{"prefix":"vaultwarden/backups/"},"expiration":{"days":"${var.backup_retention_days}"}}]}'
     EOF
   }
 }
