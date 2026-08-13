@@ -5,7 +5,11 @@ bucket=${backup_bucket_name}
 work=/var/lib/vaultwarden-restore
 usage() { echo "usage: vw-restore list|latest|TIMESTAMP" >&2; exit 2; }
 [[ $# -eq 1 ]] || usage
-if [[ "$1" == list ]]; then yc storage s3 ls "s3://$bucket/vaultwarden/backups/"; exit 0; fi
+if [[ "$1" == list ]]; then
+  yc storage s3api list-objects --bucket "$bucket" --prefix vaultwarden/backups/ --format json |
+    jq -r '.contents[]?.key // empty'
+  exit 0
+fi
 mkdir -p "$work"
 if [[ "$1" == latest ]]; then
   timestamp="$(
