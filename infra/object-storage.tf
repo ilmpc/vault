@@ -51,7 +51,7 @@ resource "terraform_data" "backup_bucket" {
       fi
       yc storage bucket update "$bucket" --folder-id '${var.yc_folder_id}' \
         --default-storage-class COLD \
-        --versioning versioning-disabled \
+        --versioning versioning-suspended \
         --lifecycle-rules '{"lifecycleRules":[{"id":"expire-backups","enabled":true,"filter":{"prefix":"vaultwarden/backups/"},"expiration":{"days":"${var.backup_retention_days}"}}]}'
     EOF
   }
