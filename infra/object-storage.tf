@@ -33,13 +33,35 @@ resource "yandex_resourcemanager_folder_iam_member" "os_login_auditor" {
   member    = "userAccount:${var.os_login_user_id}"
 }
 
-resource "yandex_storage_bucket" "backups" {
-  bucket = var.backup_bucket_name
-  acl    = "private"
-  versioning { enabled = true }
-  lifecycle_rule {
-    id      = "expire-backups"
-    enabled = true
-    expiration { days = var.backup_retention_days }
+resource "terraform_data" "backup_bucket" {
+  triggers_replace = {
+    bucket         = var.backup_bucket_name
+    retention_days = var.backup_retention_days
+  }
+
+  provisioner "local-exec" {
+    interpreter = ["/bin/sh", "-c"]
+    command     = <<-EOF
+      set -eu
+      bucket='${var.backup_bucket_name}'
+      endpoint='vaultwarden-storage'
+      if ! yc storage bucket get "$bucket" >/dev/null 2>&1; then
+        yc storage bucket create "$bucket" --acl private --default-storage-class STANDARD
+      fi
+      if ! yc vpc private-endpoint get "$endpoint" >/dev/null 2>&1; then
+        yc vpc private-endpoint create "$endpoint" \
+          --network-id '${data.yandex_vpc_subnet.default.network_id}' \
+          --object-storage \
+          --private-dns-records-enabled \
+          --address-spec subnet-id='${data.yandex_vpc_subnet.default.id}' >/dev/null
+      fi
+      endpoint_id="$(yc vpc private-endpoint get "$endpoint" --format json | jq -r .id)"
+      yc storage bucket update "$bucket" \
+        --versioning versioning-enabled \
+        --lifecycle-rules '{"lifecycleRules":[{"id":"expire-backups","enabled":true,"expiration":{"days":"${var.backup_retention_days}"}}]}' \
+        --enable-private-endpoints=true \
+        --private-endpoints "$endpoint_id" \
+        --private-endpoints-force-cloudconsole-access=true
+    EOF
   }
 }

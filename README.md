@@ -10,8 +10,6 @@ yc_folder_id = "..."
 domain_name = "vault.example.com"
 cloudflare_zone_id = "..."
 os_login_user_id = "aje..."
-ssh_allowed_cidrs = ["0.0.0.0/0"]
-ubuntu_image_id = "..."
 backup_bucket_name = "globally-unique-name"
 ```
 
@@ -29,8 +27,11 @@ tofu plan
 ```
 
 This setup uses Yandex Cloud OS Login, not SSH keys in VM metadata. After apply, use the `ssh_tunnel_command` output and open `http://127.0.0.1:8080/admin` locally.
+Use an OS Login image, e.g. the latest `ubuntu-2404-lts-oslogin` image.
 
 On the VM: `sudo vw-backup`, `sudo vw-restore list`, `sudo vw-restore latest`, or `sudo vw-restore TIMESTAMP`.
+
+`tofu destroy` removes compute/network/DNS, but keeps the backup bucket. A later `tofu apply` starts from the latest backup when `/srv/vaultwarden/vw-data/db.sqlite3` is missing.
 
 GitHub:
 

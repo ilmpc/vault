@@ -14,8 +14,6 @@ variable "os_login_user_id" {
   type    = string
   default = ""
 }
-variable "ssh_allowed_cidrs" { type = list(string) }
-variable "ubuntu_image_id" { type = string }
 variable "backup_bucket_name" { type = string }
 variable "backup_retention_days" {
   type    = number
@@ -31,7 +29,11 @@ variable "vaultwarden_image" {
 }
 variable "caddy_image" {
   type    = string
-  default = "caddy:2.10.2-alpine"
+  default = "caddy:2.11.4"
+}
+variable "docker_registry_mirror" {
+  type    = string
+  default = "https://dockerhub.timeweb.cloud"
 }
 variable "vm_cores" {
   type    = number
@@ -39,9 +41,9 @@ variable "vm_cores" {
 }
 variable "vm_memory" {
   type    = number
-  default = 2
+  default = 1
 }
-variable "data_disk_size_gb" {
+variable "vm_core_fraction" {
   type    = number
   default = 20
 }

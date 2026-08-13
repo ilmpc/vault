@@ -1,13 +1,7 @@
-resource "yandex_vpc_network" "vaultwarden" { name = "vaultwarden" }
-
-resource "yandex_vpc_subnet" "vaultwarden" {
-  name           = "vaultwarden-${var.yc_zone}"
-  zone           = var.yc_zone
-  network_id     = yandex_vpc_network.vaultwarden.id
-  v4_cidr_blocks = ["10.20.0.0/24"]
+data "yandex_vpc_network" "default" {
+  name = "default"
 }
 
-resource "yandex_vpc_address" "vaultwarden" {
-  name = "vaultwarden-ip"
-  external_ipv4_address { zone_id = var.yc_zone }
+data "yandex_vpc_subnet" "default" {
+  name = "default-${var.yc_zone}"
 }
