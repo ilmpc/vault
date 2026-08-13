@@ -37,6 +37,8 @@ resource "terraform_data" "backup_bucket" {
   triggers_replace = {
     bucket         = var.backup_bucket_name
     retention_days = var.backup_retention_days
+    storage_class  = "COLD"
+    versioning     = "disabled"
   }
 
   provisioner "local-exec" {
@@ -45,10 +47,11 @@ resource "terraform_data" "backup_bucket" {
       set -eu
       bucket='${var.backup_bucket_name}'
       if ! yc storage bucket get "$bucket" --folder-id '${var.yc_folder_id}' >/dev/null 2>&1; then
-        yc storage bucket create "$bucket" --folder-id '${var.yc_folder_id}' --acl private --default-storage-class ICE
+        yc storage bucket create "$bucket" --folder-id '${var.yc_folder_id}' --acl private --default-storage-class COLD
       fi
       yc storage bucket update "$bucket" --folder-id '${var.yc_folder_id}' \
-        --versioning versioning-enabled \
+        --default-storage-class COLD \
+        --versioning versioning-disabled \
         --lifecycle-rules '{"lifecycleRules":[{"id":"expire-backups","enabled":true,"filter":{"prefix":"vaultwarden/backups/"},"expiration":{"days":"${var.backup_retention_days}"}}]}'
     EOF
   }
